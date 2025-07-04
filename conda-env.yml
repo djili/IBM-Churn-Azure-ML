@@ -1,0 +1,16 @@
+name: basic-env-cpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pip:
+    - scikit-learn
+    - pandas
+    - numpy
+    - matplotlib
+    - cloudpickle
+    - psutil
+    - seaborn
+    - azureml-sdk
+    - mlflow  
+    - plotly
