@@ -2,6 +2,7 @@ from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 import os
 from dotenv import load_dotenv
+from azure.ai.ml import load_job
 
 # Charger les variables d'environnement depuis .env
 load_dotenv()
@@ -19,9 +20,6 @@ ml_client = MLClient(
     resource_group_name=resource_group,
     workspace_name=workspace_name,
 )
-
-# Créer le job d'entraînement
-from azure.ai.ml import load_job
 
 # Charger la configuration du job
 train_job = load_job("train_job.yml")

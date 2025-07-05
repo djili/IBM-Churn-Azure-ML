@@ -11,6 +11,7 @@ from sklearn.metrics import roc_curve
 import matplotlib.pyplot as plt
 from azure.ai.ml.sweep import Normal, Uniform
 
+# Fonction principale
 def main(args):
     # lecture des données
     df = getData(args.training_data)
@@ -24,8 +25,7 @@ def main(args):
     registerModel(model, args.model_name)
 
 
-
-
+# Fonction pour charger les données
 def getData(data_asset_Name):
     # Charger les variables d'environnement
     from dotenv import load_dotenv
@@ -62,6 +62,7 @@ def getData(data_asset_Name):
     data = pd.read_csv(data_asset.path)
     return data
 
+
 # Fonction pour separer les donnees
 def splitData(df):
     # Sélection des colonnes pertinentes pour l'entraînement
@@ -80,6 +81,7 @@ def splitData(df):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test
 
+
 # Fonction pour entraîner le modèle et finetuning des hyperparametres 
 def trainModel(reg_rate, X_train, X_test, y_train, y_test):
     mlflow.log_param("Regularization rate", reg_rate)
@@ -93,6 +95,7 @@ def trainModel(reg_rate, X_train, X_test, y_train, y_test):
     print("Training model...")
     model =SVC(probability=True, random_state=42).fit(X_train, y_train)
     return model
+
 
 # Fonction pour evaluer le modèle
 def evalModel(model, X_test, y_test):
@@ -121,6 +124,7 @@ def evalModel(model, X_test, y_test):
     plt.savefig("ROC-Curve.png")
     mlflow.log_artifact("ROC-Curve.png")  
 
+# Fonction pour parser les arguments
 def parse_args():
     #configurer le parser 
     parser = argparse.ArgumentParser()
@@ -136,6 +140,7 @@ def parse_args():
     # return args
     return args
 
+# Fonction pour enregistrer le modèle
 def registerModel(model, model_name):
     """
     Enregistre le modèle dans Azure ML et le sauvegarde localement
@@ -162,6 +167,7 @@ def registerModel(model, model_name):
         path=model_path,
     )
     print(f"Modèle enregistré avec succès dans {model_path}")
+
 
 # run script
 if __name__ == "__main__":
