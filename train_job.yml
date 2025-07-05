@@ -1,0 +1,14 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+command: >-
+  python src/train.py 
+  --training_data "telco_churn_data" 
+  --experiment_name "churn_prediction" 
+  --model_name "ChurnPredictionModel"
+  --reg_rate 0.01
+code: .
+environment:
+  conda_file: conda-env.yml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
+compute: azureml:compute-instance-${suffix}
+display_name: train-churn-model
+experiment_name: churn-prediction

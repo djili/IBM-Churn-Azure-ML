@@ -18,21 +18,43 @@ def main(args):
     X_train, X_test, y_train, y_test = splitData(df)
     # Entrainer le modèle
     model = trainModel(args.reg_rate, X_train, X_test, y_train, y_test)
-    # evaluer le modèle
+    # Évaluer le modèle
     evalModel(model, X_test, y_test)
+    # Enregistrer le modèle
+    registerModel(model, args.model_name)
+
+
+
 
 def getData(data_asset_Name):
+    # Charger les variables d'environnement
+    from dotenv import load_dotenv
+    import os
+    
+    # Charger les variables depuis .env
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    load_dotenv(env_path)
+    
     # Authentification
     try:
         credential = DefaultAzureCredential()
-    except Exception as ex :
+    except Exception as ex:
         credential = InteractiveBrowserCredential()
-    # workspace
+    
+    # Récupérer les informations de l'espace de travail depuis les variables d'environnement
+    subscription_id = os.getenv("SUBSCRIPTION_ID")
+    resource_group = os.getenv("RESOURCE_GROUP")
+    workspace_name = os.getenv("WORKSPACE_NAME")
+    
+    if not all([subscription_id, resource_group, workspace_name]):
+        raise ValueError("Veuillez configurer les variables d'environnement SUBSCRIPTION_ID, RESOURCE_GROUP et WORKSPACE_NAME dans le fichier .env")
+    
+    # Initialiser le client ML
     ml_client = MLClient(
         credential=credential,
-        subscription_id="xxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx",
-        resource_group_name="xxxxx",
-        workspace_name="xxxxx",
+        subscription_id=subscription_id,
+        resource_group_name=resource_group,
+        workspace_name=workspace_name,
     )
     # datapath
     data_asset = ml_client.data.get(data_asset_Name, version="lastest")
@@ -103,6 +125,10 @@ def parse_args():
     #configurer le parser 
     parser = argparse.ArgumentParser()
     # Ajout des arguments
+    parser.add_argument("--experiment_name", type=str, default="churn_prediction",
+                      help="Nom de l'expérience Azure ML")
+    parser.add_argument("--model_name", type=str, default="ChurnPredictionModel",
+                      help="Nom du modèle dans le registre Azure ML")
     parser.add_argument("--training_data", dest='training_data',type=str)
     parser.add_argument("--reg_rate", dest='reg_rate',type=float, default=0.01)
     # Parsage des arguments
@@ -110,15 +136,53 @@ def parse_args():
     # return args
     return args
 
+def registerModel(model, model_name):
+    """
+    Enregistre le modèle dans Azure ML et le sauvegarde localement
+    
+    Args:
+        model: Modèle entraîné à enregistrer
+        model_name (str): Nom à donner au modèle dans le registre Azure ML
+    """
+    print(f"Enregistrement du modèle {model_name}...")
+    
+    # Enregistrement dans le registre Azure ML
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path="model",
+        registered_model_name=model_name
+    )
+    
+    # Sauvegarde locale pour référence
+    import os
+    os.makedirs("outputs", exist_ok=True)
+    model_path = os.path.join("outputs", f"{model_name.lower().replace(' ', '_')}")
+    mlflow.sklearn.save_model(
+        model,
+        path=model_path,
+    )
+    print(f"Modèle enregistré avec succès dans {model_path}")
+
 # run script
 if __name__ == "__main__":
     # Ajouter un espace dans les logs 
     print("\n\n")
+    
+    # Démarrer le suivi MLflow
+    mlflow.start_run()
     print("*" * 60)
     # Parsage des arguments 
     args = parse_args()
-    # Demarrage de la fonction principale
-    main(args)
+    
+    # Configurer le nom de l'expérience
+    mlflow.set_experiment(args.experiment_name)
+    
+    try:
+        main(args)
+        mlflow.end_run(status="FINISHED")
+    except Exception as e:
+        print(f"Erreur lors de l'exécution: {str(e)}")
+        mlflow.end_run(status="FAILED")
     # Ajouter un espace dans les logs 
     print("*" * 60)
     print("\n\n")
